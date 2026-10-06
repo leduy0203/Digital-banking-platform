@@ -61,11 +61,7 @@ export default function DashboardPage() {
       .catch(() => {});
   };
 
-  useEffect(() => {
-    // 1. Fetch Profile
-    fetchProfile();
-
-    // 2. Fetch Accounts list via /api/v1/accounts/my-accounts
+  const fetchAccounts = () => {
     accountApi.getMyAccounts()
       .then((res) => {
         if (res?.success && res.data) {
@@ -76,8 +72,9 @@ export default function DashboardPage() {
       .finally(() => {
         setIsLoadingAccounts(false);
       });
+  };
 
-    // 3. Fetch Recent Transactions via /api/v1/transactions/my-history
+  const fetchRecentTransactions = () => {
     transactionApi.getMyHistory({ page: 0, size: 3 })
       .then((res) => {
         if (res?.success && res.data) {
@@ -88,6 +85,24 @@ export default function DashboardPage() {
       .finally(() => {
         setIsLoadingTx(false);
       });
+  };
+
+  useEffect(() => {
+    fetchProfile();
+    fetchAccounts();
+    fetchRecentTransactions();
+
+    // Listen to real-time WebSocket balance change events
+    const handleBalanceChanged = () => {
+      fetchAccounts();
+      fetchRecentTransactions();
+    };
+
+    window.addEventListener('balance-changed', handleBalanceChanged);
+
+    return () => {
+      window.removeEventListener('balance-changed', handleBalanceChanged);
+    };
   }, []);
 
   const copyAccountNumber = (accNumber: string) => {

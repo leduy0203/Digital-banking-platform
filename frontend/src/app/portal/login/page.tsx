@@ -1,6 +1,6 @@
-﻿'use client';
+'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ShieldAlert,
@@ -27,6 +27,26 @@ export default function EmployeeLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('accessToken');
+      const userStr = localStorage.getItem('user');
+
+      if (token && userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          if (user.roles?.includes('ROLE_ADMIN')) {
+            router.replace('/admin/dashboard');
+          } else if (user.roles?.includes('ROLE_TELLER')) {
+            router.replace('/employee/dashboard');
+          }
+        } catch {
+          localStorage.clear();
+        }
+      }
+    }
+  }, [router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

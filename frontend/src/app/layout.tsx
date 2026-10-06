@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import QueryProvider from "@/providers/query-provider";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -30,7 +31,10 @@ export default function RootLayout({
       className={`${plusJakartaSans.variable} ${jetbrainsMono.variable} h-full antialiased font-sans`}
     >
       <body className="min-h-full flex flex-col font-sans bg-[#0D1527] text-slate-100 selection:bg-[#A3E635] selection:text-slate-950">
-        <QueryProvider>{children}</QueryProvider>
+        <QueryProvider>
+          {children}
+          <Toaster richColors position="top-right" closeButton theme="dark" />
+        </QueryProvider>
       </body>
     </html>
   );

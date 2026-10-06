@@ -1,5 +1,4 @@
-'use client';
-
+import { Suspense } from 'react';
 import Link from "next/link";
 import { 
   Settings, 
@@ -10,8 +9,9 @@ import {
   ArrowRightLeft, 
   Wifi, 
   Smartphone, 
-  PiggyBank, 
-  SlidersHorizontal
+  BookUser, 
+  SlidersHorizontal,
+  Loader2
 } from "lucide-react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { CustomerTopbar } from "@/components/layout/CustomerTopbar";
@@ -49,7 +49,13 @@ export default function TransfersPage() {
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start pb-12">
             {/* Left 3 Columns: Main Transfer Form */}
             <div className="lg:col-span-3">
-              <TransferForm />
+              <Suspense fallback={
+                <div className="bg-[#141C2E] border border-slate-800 rounded-3xl p-16 text-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-[#A3E635] mx-auto" />
+                </div>
+              }>
+                <TransferForm />
+              </Suspense>
             </div>
 
             {/* Right 1 Column: Floating Quick Services Rail */}
@@ -95,15 +101,15 @@ export default function TransfersPage() {
                   </div>
 
                   <Link 
-                    href="/savings"
+                    href="/beneficiaries"
                     className="flex items-center gap-3 p-3 rounded-2xl bg-[#1A253D]/60 border border-slate-800/80 text-slate-300 hover:text-white hover:border-slate-700 transition-all cursor-pointer group"
                   >
                     <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center text-emerald-400">
-                      <PiggyBank className="w-4 h-4" />
+                      <BookUser className="w-4 h-4" />
                     </div>
                     <div>
-                      <div className="font-bold text-xs group-hover:text-[#A3E635] transition-colors">Mở tiết kiệm</div>
-                      <div className="text-[10px] text-slate-400">Lãi suất 5.8%/năm</div>
+                      <div className="font-bold text-xs group-hover:text-[#A3E635] transition-colors">Danh bạ thụ hưởng</div>
+                      <div className="text-[10px] text-slate-400">Quản lý người nhận</div>
                     </div>
                   </Link>
                 </div>

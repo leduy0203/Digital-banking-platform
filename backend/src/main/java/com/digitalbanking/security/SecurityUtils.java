@@ -1,5 +1,6 @@
 package com.digitalbanking.security;
 
+import com.digitalbanking.domain.entity.CustomerEntity;
 import com.digitalbanking.domain.entity.UserEntity;
 import com.digitalbanking.exception.BusinessException;
 import com.digitalbanking.exception.ErrorCode;
@@ -37,5 +38,17 @@ public class SecurityUtils {
         return userRepository.findById(userId)
                 .orElseThrow(() ->
                         new BusinessException(ErrorCode.USER_NOT_FOUND));
+    }
+
+    public CustomerEntity getCurrentCustomer() {
+        UserEntity user = getCurrentUser();
+        if (user.getCustomer() == null) {
+            throw new BusinessException(ErrorCode.CUSTOMER_NOT_FOUND);
+        }
+        return user.getCustomer();
+    }
+
+    public UUID getCurrentCustomerId() {
+        return getCurrentCustomer().getId();
     }
 }

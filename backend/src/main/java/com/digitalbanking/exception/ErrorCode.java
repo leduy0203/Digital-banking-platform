@@ -90,7 +90,14 @@ public enum ErrorCode {
     TRANSACTION_PIN_NOT_SET("PIN_001", "Transaction PIN has not been set up yet", HttpStatus.BAD_REQUEST),
     TRANSACTION_PIN_ALREADY_SETUP("PIN_002", "Transaction PIN is already set up", HttpStatus.BAD_REQUEST),
     INVALID_TRANSACTION_PIN("PIN_003", "Invalid transaction PIN", HttpStatus.BAD_REQUEST),
-    TRANSACTION_PIN_LOCKED("PIN_004", "Transaction PIN is temporarily locked due to too many failed attempts. Please try again in 15 minutes.", HttpStatus.FORBIDDEN);
+    TRANSACTION_PIN_LOCKED("PIN_004", "Transaction PIN is temporarily locked due to too many failed attempts. Please try again in 15 minutes.", HttpStatus.FORBIDDEN),
+
+    // 9. NOTIFICATION
+    NOTIFICATION_NOT_FOUND("NOTIFICATION_001", "Notification not found", HttpStatus.NOT_FOUND),
+
+    // 10. BENEFICIARY
+    BENEFICIARY_NOT_FOUND("BENEFICIARY_001", "Beneficiary not found", HttpStatus.NOT_FOUND),
+    BENEFICIARY_ALREADY_EXISTS("BENEFICIARY_002", "Beneficiary already exists", HttpStatus.CONFLICT);
 
     private final String code;
     private final String message;

@@ -10,6 +10,7 @@ import com.digitalbanking.exception.ErrorCode;
 import com.digitalbanking.repository.*;
 import com.digitalbanking.repository.dao.AccountJdbcRepository;
 import com.digitalbanking.service.CashOperationService;
+import com.digitalbanking.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,7 @@ public class CashOperationServiceImpl implements CashOperationService {
     private final LedgerEntryRepository ledgerEntryRepository;
     private final CashTransactionRepository cashTransactionRepository;
     private final AccountJdbcRepository accountJdbcRepository;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -107,6 +109,18 @@ public class CashOperationServiceImpl implements CashOperationService {
         cashTransactionRepository.save(cashTransaction);
 
         log.info("Cash deposit completed successfully: {}", transactionCode);
+
+        // Send notification to customer about balance change
+        notificationService.sendBalanceNotification(
+                account.getCustomer(),
+                account.getAccountNumber(),
+                request.getAmount(),
+                "IN",
+                "Quầy giao dịch (Teller)",
+                transactionCode,
+                description,
+                balanceAfter
+        );
 
         return CashTransactionResponse.builder()
                 .referenceCode(referenceCode)
@@ -186,6 +200,18 @@ public class CashOperationServiceImpl implements CashOperationService {
                 .build();
         cashTransactionRepository.save(cashTransaction);
         log.info("Cash withdrawal completed successfully: {}", transactionCode);
+
+        // Send notification to customer about balance change
+        notificationService.sendBalanceNotification(
+                account.getCustomer(),
+                account.getAccountNumber(),
+                request.getAmount(),
+                "OUT",
+                "Quầy giao dịch (Teller)",
+                transactionCode,
+                description,
+                balanceAfter
+        );
 
         return CashTransactionResponse.builder()
                 .referenceCode(referenceCode)

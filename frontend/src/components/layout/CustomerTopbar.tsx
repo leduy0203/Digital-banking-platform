@@ -8,14 +8,33 @@ import {
   Power, 
   ShieldCheck, 
   Clock, 
-  AlertTriangle,
-  User,
-  Shield
+  AlertTriangle, 
+  User, 
+  Bell 
 } from "lucide-react";
 import { customerApi, CustomerProfile } from "@/lib/api/customerApi";
+import { notificationApi } from "@/lib/api/notificationApi";
+import { useNotificationSocket } from "@/hooks/useNotificationSocket";
 
 export function CustomerTopbar() {
   const [profile, setProfile] = useState<CustomerProfile | null>(null);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+
+  // Initialize global STOMP WebSocket connection
+  useNotificationSocket(() => {
+    // When a new notification arrives via socket, increment badge count
+    setUnreadCount((prev) => prev + 1);
+  });
+
+  const fetchUnreadCount = () => {
+    notificationApi.getUnreadCount()
+      .then((res) => {
+        if (res?.success && typeof res.data === 'number') {
+          setUnreadCount(res.data);
+        }
+      })
+      .catch(() => {});
+  };
 
   useEffect(() => {
     // 1. Try to load initial profile from localStorage
@@ -46,7 +65,6 @@ export function CustomerTopbar() {
       .then((res) => {
         if (res?.success && res.data) {
           setProfile(res.data);
-          // Update cached user fullName if needed
           if (cachedUser) {
             try {
               const u = JSON.parse(cachedUser);
@@ -59,9 +77,20 @@ export function CustomerTopbar() {
           }
         }
       })
-      .catch(() => {
-        // Not completed profile or offline fallback
-      });
+      .catch(() => {});
+
+    // 3. Fetch initial unread notifications count
+    fetchUnreadCount();
+
+    // Listen to custom DOM events
+    const handleNotificationEvent = () => {
+      fetchUnreadCount();
+    };
+    window.addEventListener('notification-received', handleNotificationEvent);
+
+    return () => {
+      window.removeEventListener('notification-received', handleNotificationEvent);
+    };
   }, []);
 
   const handleLogout = () => {
@@ -131,19 +160,36 @@ export function CustomerTopbar() {
       </Link>
 
       {/* Action links */}
-      <div className="flex items-center gap-8 text-sm">
+      <div className="flex items-center gap-6 text-sm">
+        {/* Notification Bell */}
+        <Link 
+          href="/notifications" 
+          className="relative p-2 rounded-full bg-[#141C2E] hover:bg-[#1E293B] border border-slate-800 text-slate-300 hover:text-white transition-all shadow-sm"
+          title="Thông báo"
+        >
+          <Bell className="w-4 h-4 text-[#A3E635]" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center animate-pulse shadow-md">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
+        </Link>
+
         <Link href="/profile" className="flex items-center gap-2 hover:text-white transition-colors text-slate-400">
           <User className="w-4 h-4 text-emerald-400" />
           <span>Hồ sơ cá nhân</span>
         </Link>
+
         <Link href="/settings" className="flex items-center gap-2 hover:text-white transition-colors text-slate-400">
           <Settings className="w-4 h-4 text-slate-400" />
           <span>Cài đặt</span>
         </Link>
+
         <button className="flex items-center gap-2 hover:text-white transition-colors">
           <Globe className="w-4 h-4 text-emerald-400" />
           <span className="font-semibold text-slate-200">Tiếng Việt</span>
         </button>
+
         <button 
           onClick={handleLogout} 
           className="flex items-center gap-2 text-slate-400 hover:text-red-400 transition-colors cursor-pointer"
@@ -155,3 +201,4 @@ export function CustomerTopbar() {
     </header>
   );
 }
+

@@ -11,6 +11,7 @@ import com.digitalbanking.repository.LedgerEntryRepository;
 import com.digitalbanking.repository.TransactionRepository;
 import com.digitalbanking.repository.dao.AccountJdbcRepository;
 import com.digitalbanking.repository.dao.TransactionJdbcRepository;
+import com.digitalbanking.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -33,6 +34,7 @@ public class TransferTxExecutor {
     private final TransactionJdbcRepository transactionJdbcRepository;
     private final AccountJdbcRepository accountJdbcRepository;
     private final LedgerEntryRepository ledgerEntryRepository;
+    private final NotificationService notificationService;
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public TransactionResponse executeTransfer(String transactionCode, UUID currentCustomerId) {
@@ -99,6 +101,8 @@ public class TransferTxExecutor {
         txn.setCompletedAt(completedAt);
         log.info("Transfer executed successfully: txnCode={}, amount={}", transactionCode, amount);
 
+        sendTransferNotifications(txn, sourceBalanceAfter, targetBalanceAfter);
+
         return TransactionResponse.builder()
                 .id(txn.getId())
                 .transactionCode(txn.getTransactionCode())
@@ -120,5 +124,39 @@ public class TransferTxExecutor {
 
     private boolean isExpired(Instant createdAt) {
         return createdAt.plusSeconds(TRANSACTION_EXPIRATION_SECONDS).isBefore(Instant.now());
+    }
+
+    private void sendTransferNotifications(
+            TransactionEntity txn,
+            BigDecimal sourceBalanceAfter,
+            BigDecimal targetBalanceAfter
+    ) {
+        String transactionCode = txn.getTransactionCode();
+        BigDecimal amount = txn.getAmount();
+        String description = txn.getDescription();
+
+        // Send notification for Sender (A) - OUT (-)
+        notificationService.sendBalanceNotification(
+                txn.getSourceAccount().getCustomer(),
+                txn.getSourceAccount().getAccountNumber(),
+                amount,
+                "OUT",
+                txn.getTargetAccountName(),
+                transactionCode,
+                description,
+                sourceBalanceAfter
+        );
+
+        // 2. Send notification for Receiver (B) - IN (+)
+        notificationService.sendBalanceNotification(
+                txn.getTargetAccount().getCustomer(),
+                txn.getTargetAccount().getAccountNumber(),
+                amount,
+                "IN",
+                txn.getSourceAccount().getCustomer().getFullName(),
+                transactionCode,
+                description,
+                targetBalanceAfter
+        );
     }
 }

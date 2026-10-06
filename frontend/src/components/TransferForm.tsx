@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { 
   ArrowRightLeft, 
   ShieldCheck, 
@@ -20,7 +21,10 @@ import {
   Check,
   History,
   Copy,
-  AlertCircle
+  AlertCircle,
+  UserPlus,
+  Loader2,
+  Bookmark
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,10 +34,13 @@ import { useTransfer } from '@/hooks/useTransfer';
 import { PinVerificationModal } from './PinVerificationModal';
 import { 
   accountApi, 
+  beneficiaryApi,
+  BeneficiaryItem,
   AccountResponseData, 
   TransferInitiateResponseData, 
   TransactionResponseData 
 } from '@/lib/api';
+import { toast } from 'sonner';
 
 // Supported Banks List
 const BANKS_LIST = [
@@ -45,13 +52,6 @@ const BANKS_LIST = [
   { code: 'CTG', name: 'VietinBank', desc: 'Ngân hàng Công Thương (Napas 24/7)', icon: '🔴' },
   { code: 'VPB', name: 'VPBank', desc: 'Ngân hàng Việt Nam Thịnh Vượng (Napas 24/7)', icon: '🟢' },
   { code: 'ACB', name: 'ACB', desc: 'Ngân hàng Á Châu (Napas 24/7)', icon: '🔵' },
-];
-
-// Quick Saved Beneficiaries
-const SAVED_BENEFICIARIES = [
-  { accountNumber: '8880987654', accountName: 'NGUYEN VAN A', bankName: 'Digital Bank' },
-  { accountNumber: '9991234567', accountName: 'TRAN THI B', bankName: 'Vietcombank' },
-  { accountNumber: '1029384756', accountName: 'LE HOANG C', bankName: 'Techcombank' },
 ];
 
 function formatNumberWithDots(val: string | number): string {
@@ -81,6 +81,9 @@ const transferSchema = z
 type TransferFormValues = z.infer<typeof transferSchema>;
 
 export function TransferForm() {
+  const searchParams = useSearchParams();
+  const toAccountParam = searchParams.get('to');
+
   const { initiateTransfer, isInitiating, confirmTransfer, isConfirming } = useTransfer();
   
   // Step State: 1 = Form Input, 2 = Confirmation Review, 3 = Completed Receipt
@@ -94,6 +97,11 @@ export function TransferForm() {
   const [openAccountDropdown, setOpenAccountDropdown] = useState(false);
   const [initiateError, setInitiateError] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
+
+  // Beneficiary quick-save state
+  const [savedBeneficiaries, setSavedBeneficiaries] = useState<BeneficiaryItem[]>([]);
+  const [isSavingBeneficiary, setIsSavingBeneficiary] = useState(false);
+  const [isBeneficiarySaved, setIsBeneficiarySaved] = useState(false);
 
   // Transfer States
   const [initiatedData, setInitiatedData] = useState<TransferInitiateResponseData | null>(null);
@@ -124,6 +132,21 @@ export function TransferForm() {
       description: 'Chuyen tien',
     },
   });
+
+  useEffect(() => {
+    if (toAccountParam) {
+      setValue('targetAccountNumber', toAccountParam);
+      setValue('bankCode', 'DBC');
+    }
+
+    beneficiaryApi.getMyBeneficiaries()
+      .then((res) => {
+        if (res?.success && Array.isArray(res.data)) {
+          setSavedBeneficiaries(res.data);
+        }
+      })
+      .catch(() => {});
+  }, [toAccountParam, setValue]);
 
   const selectedSourceAccount = watch('sourceAccountNumber');
   const selectedBankCode = watch('bankCode');
@@ -389,23 +412,35 @@ export function TransferForm() {
             {/* Quick Beneficiary Picker Popup */}
             {showBeneficiaryPicker && (
               <div className="bg-[#1A253D] border border-emerald-500/40 p-4 rounded-2xl space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                <span className="text-xs text-slate-300 font-bold block mb-2">Chọn nhanh từ người thụ hưởng đã lưu:</span>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                  {SAVED_BENEFICIARIES.map((ben) => (
-                    <button
-                      key={ben.accountNumber}
-                      type="button"
-                      onClick={() => {
-                        setValue('targetAccountNumber', ben.accountNumber);
-                        setShowBeneficiaryPicker(false);
-                      }}
-                      className="p-2.5 rounded-xl bg-[#141C2E] border border-slate-700 hover:border-[#A3E635] text-left transition-all"
-                    >
-                      <div className="font-bold text-xs text-white truncate">{ben.accountName}</div>
-                      <div className="font-mono text-[11px] text-emerald-400">{ben.accountNumber}</div>
-                    </button>
-                  ))}
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-slate-300 font-bold">Chọn từ danh bạ thụ hưởng đã lưu:</span>
+                  <Link href="/beneficiaries" className="text-[11px] text-[#A3E635] hover:underline">
+                    Quản lý danh bạ &rarr;
+                  </Link>
                 </div>
+                {savedBeneficiaries.length === 0 ? (
+                  <div className="text-xs text-slate-400 p-3 text-center bg-[#141C2E] rounded-xl">
+                    Chưa có người thụ hưởng nào được lưu trong danh bạ.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    {savedBeneficiaries.map((ben) => (
+                      <button
+                        key={ben.id || ben.accountNumber}
+                        type="button"
+                        onClick={() => {
+                          setValue('targetAccountNumber', ben.accountNumber);
+                          setValue('bankCode', 'DBC');
+                          setShowBeneficiaryPicker(false);
+                        }}
+                        className="p-2.5 rounded-xl bg-[#141C2E] border border-slate-700 hover:border-[#A3E635] text-left transition-all cursor-pointer"
+                      >
+                        <div className="font-bold text-xs text-white truncate">{ben.aliasName || ben.beneficiaryName}</div>
+                        <div className="font-mono text-[11px] text-[#A3E635]">{ben.accountNumber}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -459,6 +494,45 @@ export function TransferForm() {
 
               {/* Target Account Input */}
               <div className="space-y-1.5">
+                {/* Saved Beneficiaries Quick Pick */}
+                {savedBeneficiaries.length > 0 && (
+                  <div className="space-y-1.5 pb-2">
+                    <div className="flex items-center justify-between text-[11px] text-slate-400">
+                      <span className="flex items-center gap-1 font-semibold text-slate-300">
+                        <Bookmark className="w-3.5 h-3.5 text-[#A3E635]" /> Danh bạ thụ hưởng đã lưu:
+                      </span>
+                      <Link href="/beneficiaries" className="text-emerald-400 hover:underline">
+                        Quản lý ({savedBeneficiaries.length})
+                      </Link>
+                    </div>
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                      {savedBeneficiaries.map((b) => (
+                        <button
+                          key={b.id}
+                          type="button"
+                          onClick={() => {
+                            setValue('targetAccountNumber', b.accountNumber);
+                            setValue('bankCode', 'DBC');
+                          }}
+                          className={`px-3 py-2 rounded-xl text-xs font-semibold shrink-0 border transition-all flex items-center gap-2 cursor-pointer ${
+                            targetAccountNumber === b.accountNumber
+                              ? 'bg-emerald-950 border-emerald-500 text-emerald-300 shadow-md'
+                              : 'bg-[#1A253D] border-slate-700 text-slate-300 hover:border-[#A3E635] hover:text-white'
+                          }`}
+                        >
+                          <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-[#A3E635] font-black text-[10px] flex items-center justify-center">
+                            {b.beneficiaryName?.substring(0, 1).toUpperCase()}
+                          </div>
+                          <div className="text-left">
+                            <div className="font-bold text-[11px] truncate max-w-[120px]">{b.aliasName || b.beneficiaryName}</div>
+                            <div className="text-[10px] font-mono text-slate-400">{b.accountNumber}</div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <label className="text-xs text-slate-400 font-medium">Số tài khoản thụ hưởng (10 số)</label>
                 <div className="relative">
                   <Input
@@ -718,6 +792,48 @@ export function TransferForm() {
                 </span>
               </div>
             </div>
+
+            {/* Quick Save Beneficiary Button */}
+            {!isBeneficiarySaved && (
+              <div className="bg-[#1A253D]/70 border border-slate-700/60 rounded-2xl p-4 flex items-center justify-between gap-4">
+                <div className="text-left">
+                  <div className="font-bold text-xs text-white">Lưu người nhận này vào danh bạ?</div>
+                  <div className="text-[11px] text-slate-400">Lần sau chuyển tiền chỉ cần 1 chạm mà không cần nhập lại STK.</div>
+                </div>
+                <Button
+                  type="button"
+                  onClick={async () => {
+                    if (!completedReceipt) return;
+                    setIsSavingBeneficiary(true);
+                    try {
+                      await beneficiaryApi.createBeneficiary({
+                        accountNumber: completedReceipt.targetAccountNumber,
+                        beneficiaryName: completedReceipt.targetAccountName || 'NGƯỜI THỤ HƯỞNG',
+                      });
+                      setIsBeneficiarySaved(true);
+                      toast.success('Đã lưu người thụ hưởng vào danh bạ thành công!');
+                    } catch (err: any) {
+                      const msg = err.response?.data?.detail || err.response?.data?.message || 'Không thể lưu người thụ hưởng';
+                      toast.error(msg);
+                    } finally {
+                      setIsSavingBeneficiary(false);
+                    }
+                  }}
+                  disabled={isSavingBeneficiary}
+                  className="bg-[#141C2E] hover:bg-[#1E293B] border border-slate-700 hover:border-[#A3E635] text-[#A3E635] text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer shrink-0"
+                >
+                  {isSavingBeneficiary ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserPlus className="w-3.5 h-3.5" />}
+                  <span>Lưu Thụ Hưởng</span>
+                </Button>
+              </div>
+            )}
+
+            {isBeneficiarySaved && (
+              <div className="bg-emerald-950/60 border border-emerald-500/40 rounded-2xl p-3 flex items-center justify-center gap-2 text-xs font-bold text-[#A3E635]">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Người thụ hưởng đã được lưu vào danh bạ!</span>
+              </div>
+            )}
 
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Link href="/transactions" className="flex-1">
