@@ -79,6 +79,7 @@ public class TransferTxExecutor {
                 .balanceAfter(sourceBalanceAfter)
                 .description("Transfer money to " + targetAccountNumber)
                 .build();
+
         LedgerEntryEntity creditLedger = LedgerEntryEntity.builder()
                 .transaction(txn)
                 .account(txn.getTargetAccount())

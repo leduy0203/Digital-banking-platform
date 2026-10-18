@@ -54,6 +54,7 @@ public enum ErrorCode {
     TRANSACTION_LIMIT_EXCEEDED("TRF_002", "Transaction amount exceeds allowed limit", HttpStatus.BAD_REQUEST),
     DUPLICATE_IDEMPOTENCY_KEY("TRF_003", "Transaction is already being processed or completed", HttpStatus.CONFLICT),
     TRANSACTION_FAILED("TRF_004", "Transaction execution failed, please try again later", HttpStatus.INTERNAL_SERVER_ERROR),
+    TRANSACTION_NOT_FOUND("TRF_005", "Transaction not found", HttpStatus.NOT_FOUND),
 
     // 6. CARD
 
@@ -97,7 +98,10 @@ public enum ErrorCode {
 
     // 10. BENEFICIARY
     BENEFICIARY_NOT_FOUND("BENEFICIARY_001", "Beneficiary not found", HttpStatus.NOT_FOUND),
-    BENEFICIARY_ALREADY_EXISTS("BENEFICIARY_002", "Beneficiary already exists", HttpStatus.CONFLICT);
+    BENEFICIARY_ALREADY_EXISTS("BENEFICIARY_002", "Beneficiary already exists", HttpStatus.CONFLICT),
+
+    // 11. ROLE & PERMISSION
+    ROLE_NOT_FOUND_BY_ID("ROLE_001", "Role not found with specified identifier", HttpStatus.NOT_FOUND);
 
     private final String code;
     private final String message;

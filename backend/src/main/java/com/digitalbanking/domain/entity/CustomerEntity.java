@@ -3,6 +3,7 @@ package com.digitalbanking.domain.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.Instant;
 import java.time.LocalDate;
 
 @Entity
@@ -40,7 +41,7 @@ public class CustomerEntity extends BaseEntity {
     private Integer pinFailedAttempts = 0;
 
     @Column(name = "pin_locked_until")
-    private java.time.Instant pinLockedUntil;
+    private Instant pinLockedUntil;
 
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id" , nullable = false, unique = true)
